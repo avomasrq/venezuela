@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tierra de Gracia — Venezuela</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Josefin+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root {
+  --dark: #1A1208;
+  --gold: #C9933A;
+  --cream: #F5EDD8;
+  --forest: #2C4A2E;
+  --sky: #4A7FA5;
+  --dark2: #221810;
+  --dark3: #2a1f10;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--dark);
+  color: var(--cream);
+  font-family: 'Josefin Sans', sans-serif;
+  cursor: none;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.35;
+}
+
+/* CURSOR */
+#cursor-dot, #cursor-ring {
+  position: fixed;
+  pointer-events: none;
+  z-index: 99999;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.3s;
+}
+#cursor-dot {
+  width: 6px; height: 6px;
+  background: var(--gold);
+}
+#cursor-ring {
+  width: 30px; height: 30px;
+  border: 1.5px solid var(--gold);
+  transition: transform 0.15s ease, width 0.2s, height 0.2s;
+  opacity: 0.7;
+}
+
+/* NAVBAR */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.2rem 3rem;
+  background: linear-gradient(to bottom, rgba(26,18,8,0.95), transparent);
+  backdrop-filter: blur(4px);
+}
+.nav-logo {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 1.5rem;
+  color: var(--gold);
+  letter-spacing: 0.02em;
+}
+.nav-links {
+  display: flex;
+  gap: 2.5rem;
+  list-style: none;
+}
+.nav-links a {
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cream);
+  text-decoration: none;
+  opacity: 0.8;
+  transition: opacity 0.3s, color 0.3s;
+}
+.nav-links a:hover { opacity: 1; color: var(--gold); }
+
+.lang-toggle {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.lang-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--cream);
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  padding: 0.35rem 0.7rem;
+  cursor: none;
+  opacity: 0.5;
+  transition: all 0.3s;
+  border-radius: 2px;
+}
+.lang-btn.active {
+  opacity: 1;
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* ONBOARDING */
+#onboarding {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: var(--dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.8s ease;
+}
+#onboarding.hidden { opacity: 0; pointer-events: none; }
+
+.ob-step { display: none; flex-direction: column; align-items: center; text-align: center; max-width: 900px; padding: 2rem; }
+.ob-step.active { display: flex; }
+
+.ob-step h1 {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  color: var(--cream);
+  line-height: 1.1;
+  margin-bottom: 1rem;
+}
+.ob-step h1 span { color: var(--gold); }
+.ob-subtitle {
+  font-size: 0.8rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 2.5rem;
+  opacity: 0.8;
+}
+.ob-step p {
+  font-size: 1rem;
+  opacity: 0.7;
+  max-width: 500px;
+  line-height: 1.8;
+  margin-bottom: 3rem;
+}
+
+.btn-gold {
+  background: var(--gold);
+  color: var(--dark);
+  border: none;
+  padding: 1rem 3rem;
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  cursor: none;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.btn-gold::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.15);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.btn-gold:hover::after { opacity: 1; }
+.btn-gold:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(201,147,58,0.3); }
+
+.ob-deco {
+  position: absolute;
+  width: 300px; height: 300px;
+  border: 1px solid rgba(201,147,58,0.1);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.ob-deco:nth-child(1) { top: -100px; right: -100px; }
+.ob-deco:nth-child(2) { bottom: -150px; left: -150px; width: 400px; height: 400px; }
+
+/* CITY / INTEREST CARDS */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1rem;
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 2.5rem;
+}
+.sel-card {
+  border: 1px solid rgba(201,147,58,0.2);
+  padding: 1.5rem 1rem;
+  cursor: none;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255,255,255,0.02);
+}
+.sel-card:hover { border-color: var(--gold); background: rgba(201,147,58,0.08); transform: translateY(-3px); }
+.sel-card.selected { border-color: var(--gold); background: rgba(201,147,58,0.15); }
+.sel-card .icon { font-size: 2rem; }
+.sel-card .name { font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--cream); }
+.sel-card .tag { font-size: 0.6rem; opacity: 0.5; }
+
+.ob-nav-row { display: flex; gap: 1rem; align-items: center; }
+.btn-outline {
+  background: none;
+  border: 1px solid rgba(201,147,58,0.4);
+  color: var(--cream);
+  padding: 0.8rem 2rem;
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: none;
+  transition: all 0.3s;
+}
+.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+
+.ob-steps-indicator {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 3rem;
+}
+.ob-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(201,147,58,0.3);
+  transition: background 0.3s;
+}
+.ob-dot.active { background: var(--gold); }
+
+/* HERO */
+#hero {
+  height: 100vh;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 8vw;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 60% 50%, rgba(44,74,46,0.25) 0%, transparent 60%),
+              radial-gradient(ellipse at 20% 80%, rgba(74,127,165,0.15) 0%, transparent 50%),
+              linear-gradient(135deg, #1A1208 0%, #221810 50%, #1A1208 100%);
+}
+
+.mountain-svg {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  width: 100%; height: 55%;
+}
+
+#particles-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 10;
+  max-width: 700px;
+  animation: fadeInUp 1.2s ease forwards;
+}
+.hero-eyebrow {
+  font-size: 0.65rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1.5rem;
+  opacity: 0.9;
+}
+.hero-title {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: clamp(3rem, 7vw, 6.5rem);
+  line-height: 1.0;
+  color: var(--cream);
+  margin-bottom: 1.5rem;
+}
+.hero-title span { color: var(--gold); display: block; }
+.hero-desc {
+  font-size: 0.9rem;
+  line-height: 1.9;
+  opacity: 0.65;
+  max-width: 420px;
+  margin-bottom: 2.5rem;
+}
+.hero-ctas { display: flex; gap: 1rem; align-items: center; }
+.hero-link {
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(201,147,58,0.4);
+  padding-bottom: 2px;
+  transition: border-color 0.3s;
+}
+.hero-link:hover { border-color: var(--gold); }
+
+.scroll-indicator {
+  position: absolute;
+  bottom: 2.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 10;
+  opacity: 0.5;
+}
+.scroll-indicator span { font-size: 0.55rem; letter-spacing: 0.25em; text-transform: uppercase; }
+.scroll-line {
+  width: 1px; height: 40px;
+  background: linear-gradient(to bottom, var(--gold), transparent);
+  animation: scrollPulse 2s ease-in-out infinite;
+}
+@keyframes scrollPulse {
+  0%, 100% { opacity: 1; transform: scaleY(1); }
+  50% { opacity: 0.3; transform: scaleY(0.6); }
+}
+
+/* TICKER */
+.ticker-wrap {
+  background: var(--gold);
+  overflow: hidden;
+  padding: 0.75rem 0;
+  position: relative;
+}
+.ticker-wrap::before, .ticker-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 80px;
+  z-index: 2;
+}
+.ticker-wrap::before { left: 0; background: linear-gradient(to right, var(--gold), transparent); }
+.ticker-wrap::after { right: 0; background: linear-gradient(to left, var(--gold), transparent); }
+.ticker {
+  display: flex;
+  white-space: nowrap;
+  animation: ticker 30s linear infinite;
+}
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 2.5rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--dark);
+  font-weight: 700;
+}
+.ticker-sep { opacity: 0.4; }
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* SECTION WRAPPER */
+section { position: relative; }
+.section-inner { max-width: 1200px; margin: 0 auto; padding: 6rem 4rem; }
+
+.section-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1rem;
+  opacity: 0.8;
+}
+.section-title {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  color: var(--cream);
+  line-height: 1.1;
+  margin-bottom: 1rem;
+}
+.section-sub {
+  font-size: 0.85rem;
+  opacity: 0.55;
+  max-width: 500px;
+  line-height: 1.8;
+  margin-bottom: 3.5rem;
+}
+
+/* DIAGONAL DIVIDER */
+.divider {
+  height: 80px;
+  background: var(--dark2);
+  clip-path: polygon(0 0, 100% 40%, 100% 100%, 0 100%);
+  margin-top: -1px;
+}
+.divider.flip {
+  clip-path: polygon(0 40%, 100% 0, 100% 100%, 0 100%);
+}
+
+/* ATTRACTIONS */
+#attractions { background: var(--dark2); }
+.attractions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+.attraction-card {
+  border: 1px solid rgba(201,147,58,0.15);
+  overflow: hidden;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  background: rgba(255,255,255,0.02);
+  position: relative;
+}
+.attraction-card:hover { transform: translateY(-8px); box-shadow: 0 20px 60px rgba(201,147,58,0.15); border-color: rgba(201,147,58,0.4); }
+.attraction-img {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  position: relative;
+  overflow: hidden;
+}
+.attraction-img::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 40%, rgba(26,18,8,0.8));
+}
+.attr-body { padding: 1.5rem; }
+.attr-loc {
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.8;
+  margin-bottom: 0.4rem;
+}
+.attr-name {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 1.4rem;
+  color: var(--cream);
+  margin-bottom: 0.6rem;
+}
+.attr-desc { font-size: 0.8rem; opacity: 0.6; line-height: 1.7; margin-bottom: 1.2rem; }
+.btn-sm {
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  border: 1px solid rgba(201,147,58,0.3);
+  padding: 0.5rem 1.2rem;
+  background: none;
+  cursor: none;
+  transition: all 0.3s;
+  font-family: 'Josefin Sans', sans-serif;
+}
+.btn-sm:hover { background: var(--gold); color: var(--dark); }
+
+/* MAP */
+#map-section { background: var(--dark3); }
+.map-container { border: 1px solid rgba(201,147,58,0.2); overflow: hidden; height: 500px; position: relative; }
+#map { height: 100%; width: 100%; }
+.map-filters {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+.map-filter-btn {
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 0.5rem 1.2rem;
+  border: 1px solid rgba(201,147,58,0.3);
+  background: none;
+  color: var(--cream);
+  cursor: none;
+  transition: all 0.3s;
+  font-family: 'Josefin Sans', sans-serif;
+}
+.map-filter-btn.active, .map-filter-btn:hover {
+  background: var(--gold);
+  color: var(--dark);
+  border-color: var(--gold);
+}
+
+/* CITY GUIDE */
+#city-guide { background: var(--dark2); }
+.city-tabs { display: flex; gap: 0; flex-wrap: wrap; margin-bottom: 2.5rem; border-bottom: 1px solid rgba(201,147,58,0.2); }
+.city-tab {
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 0.8rem 1.5rem;
+  background: none;
+  border: none;
+  color: var(--cream);
+  opacity: 0.4;
+  cursor: none;
+  transition: all 0.3s;
+  font-family: 'Josefin Sans', sans-serif;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.city-tab.active { opacity: 1; color: var(--gold); border-bottom-color: var(--gold); }
+
+.city-panel { display: none; }
+.city-panel.active { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+.city-info-block { padding: 1.5rem; border: 1px solid rgba(201,147,58,0.1); }
+.city-info-label {
+  font-size: 0.55rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 0.6rem;
+}
+.city-info-text { font-size: 0.85rem; opacity: 0.7; line-height: 1.8; }
+
+/* FUN FACTS */
+#fun-facts { background: var(--dark); }
+.facts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+.fact-card {
+  padding: 2rem;
+  border: 1px solid rgba(201,147,58,0.15);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s;
+}
+.fact-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px;
+  height: 0;
+  background: var(--gold);
+  transition: height 0.4s;
+}
+.fact-card:hover::before { height: 100%; }
+.fact-card:hover { background: rgba(201,147,58,0.05); transform: translateX(4px); }
+.fact-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+.fact-text { font-size: 0.85rem; line-height: 1.8; opacity: 0.7; }
+
+/* TRAVEL TIPS */
+#travel-tips { background: var(--dark3); }
+.tips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+.tip-card {
+  padding: 1.8rem;
+  border: 1px solid rgba(201,147,58,0.1);
+  background: rgba(255,255,255,0.015);
+  transition: all 0.3s;
+}
+.tip-card:hover { border-color: rgba(201,147,58,0.3); }
+.tip-icon { font-size: 1.8rem; margin-bottom: 0.8rem; }
+.tip-title { font-family: 'DM Serif Display', serif; font-style: italic; font-size: 1.1rem; color: var(--cream); margin-bottom: 0.5rem; }
+.tip-text { font-size: 0.8rem; opacity: 0.6; line-height: 1.7; }
+
+/* FOOTER */
+footer {
+  background: var(--dark);
+  border-top: 1px solid rgba(201,147,58,0.15);
+}
+.flag-strip {
+  height: 4px;
+  background: linear-gradient(to right, #FFCC00 33.3%, #003F87 33.3% 66.6%, #CE1126 66.6%);
+}
+.footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 4rem 4rem 2rem;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 3rem;
+}
+.footer-brand {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 2rem;
+  color: var(--gold);
+  margin-bottom: 1rem;
+}
+.footer-tagline { font-size: 0.75rem; opacity: 0.5; line-height: 1.8; }
+.footer-col-title {
+  font-size: 0.6rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1.2rem;
+}
+.footer-links { list-style: none; display: flex; flex-direction: column; gap: 0.7rem; }
+.footer-links a { font-size: 0.8rem; opacity: 0.5; text-decoration: none; color: var(--cream); transition: opacity 0.3s; }
+.footer-links a:hover { opacity: 1; }
+.newsletter-form { display: flex; gap: 0; margin-top: 0.5rem; }
+.newsletter-input {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(201,147,58,0.3);
+  border-right: none;
+  color: var(--cream);
+  padding: 0.7rem 1rem;
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 0.7rem;
+  outline: none;
+}
+.newsletter-input::placeholder { opacity: 0.4; }
+.newsletter-btn {
+  background: var(--gold);
+  border: none;
+  color: var(--dark);
+  padding: 0.7rem 1.2rem;
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  cursor: none;
+  transition: opacity 0.3s;
+}
+.newsletter-btn:hover { opacity: 0.85; }
+.footer-bottom {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 4rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.footer-copy { font-size: 0.65rem; opacity: 0.3; }
+.social-links { display: flex; gap: 1rem; }
+.social-links a { font-size: 1rem; opacity: 0.4; text-decoration: none; transition: opacity 0.3s; }
+.social-links a:hover { opacity: 1; }
+
+/* ANIMATIONS */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+
+/* LANG FADE */
+[data-i18n] { transition: opacity 0.25s ease; }
+.lang-switching [data-i18n] { opacity: 0; }
+
+/* LEAFLET DARK OVERRIDES */
+.leaflet-container { background: #1a1208 !important; }
+.leaflet-popup-content-wrapper {
+  background: var(--dark2) !important;
+  color: var(--cream) !important;
+  border: 1px solid rgba(201,147,58,0.3) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+}
+.leaflet-popup-tip { background: var(--dark2) !important; }
+.leaflet-popup-content { font-family: 'Josefin Sans', sans-serif; font-size: 0.8rem; line-height: 1.6; }
+
+/* MOUNTAIN SVG ANIMATION */
+@keyframes mountainFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.mountain-layer { animation: mountainFloat 8s ease-in-out infinite; }
+.mountain-layer:nth-child(2) { animation-delay: -3s; }
+.mountain-layer:nth-child(3) { animation-delay: -6s; }
+
+@media (max-width: 768px) {
+  nav { padding: 1rem 1.5rem; }
+  .nav-links { display: none; }
+  .section-inner { padding: 4rem 1.5rem; }
+  .footer-inner { grid-template-columns: 1fr; }
+  .city-panel.active { grid-template-columns: 1fr; }
+  .footer-bottom { flex-direction: column; gap: 1rem; }
+}
+
+/* GRADIENT BG VARIATION */
+#attractions { background: linear-gradient(180deg, var(--dark2) 0%, #1e1509 100%); }
+#map-section { background: linear-gradient(180deg, #1e1509 0%, var(--dark3) 100%); }
+</style>
+</head>
+<body>
+
+<!-- CURSOR -->
+<div id="cursor-dot"></div>
+<div id="cursor-ring"></div>
+
+<!-- NAVBAR -->
+<nav>
+  <div class="nav-logo">Tierra de Gracia</div>
+  <ul class="nav-links">
+    <li><a href="#attractions" data-i18n="nav_attractions">Attractions</a></li>
+    <li><a href="#map-section" data-i18n="nav_map">Map</a></li>
+    <li><a href="#city-guide" data-i18n="nav_cities">Cities</a></li>
+    <li><a href="#travel-tips" data-i18n="nav_tips">Travel Tips</a></li>
+  </ul>
+  <div class="lang-toggle">
+    <button class="lang-btn active" data-lang="en" onclick="setLang('en')">🇺🇸 EN</button>
+    <button class="lang-btn" data-lang="ru" onclick="setLang('ru')">🇷🇺 RU</button>
+  </div>
+</nav>
+
+<!-- ONBOARDING -->
+<div id="onboarding">
+  <div class="ob-deco"></div>
+  <div class="ob-deco"></div>
+
+  <!-- Step 1: Welcome -->
+  <div class="ob-step active" id="ob-step-1">
+    <div class="ob-steps-indicator">
+      <div class="ob-dot active"></div>
+      <div class="ob-dot"></div>
+      <div class="ob-dot"></div>
+    </div>
+    <p class="ob-subtitle" data-i18n="ob_welcome_label">Welcome to Venezuela</p>
+    <h1><span data-i18n="ob_welcome_title1">Land of</span><br><span data-i18n="ob_welcome_title2">Grace</span></h1>
+    <p data-i18n="ob_welcome_desc">Venezuela — a land of soaring tabletop mountains, crystalline Caribbean shores, and a culture as vibrant as its sunsets. Your extraordinary journey begins here.</p>
+    <button class="btn-gold" onclick="goToStep(2)" data-i18n="ob_begin">Begin Your Journey</button>
+  </div>
+
+  <!-- Step 2: City -->
+  <div class="ob-step" id="ob-step-2">
+    <div class="ob-steps-indicator">
+      <div class="ob-dot"></div>
+      <div class="ob-dot active"></div>
+      <div class="ob-dot"></div>
+    </div>
+    <p class="ob-subtitle" data-i18n="ob_city_label">Your Destination</p>
+    <h1 data-i18n="ob_city_title">Where are you <span>headed?</span></h1>
+    <div class="card-grid" id="city-grid"></div>
+    <div class="ob-nav-row">
+      <button class="btn-outline" onclick="goToStep(1)" data-i18n="ob_back">Back</button>
+      <button class="btn-gold" onclick="goToStep(3)" data-i18n="ob_next">Next</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Interests -->
+  <div class="ob-step" id="ob-step-3">
+    <div class="ob-steps-indicator">
+      <div class="ob-dot"></div>
+      <div class="ob-dot"></div>
+      <div class="ob-dot active"></div>
+    </div>
+    <p class="ob-subtitle" data-i18n="ob_interest_label">Your Travel Style</p>
+    <h1 data-i18n="ob_interest_title">What excites <span>you?</span></h1>
+    <div class="card-grid" id="interest-grid"></div>
+    <div class="ob-nav-row">
+      <button class="btn-outline" onclick="goToStep(2)" data-i18n="ob_back">Back</button>
+      <button class="btn-gold" onclick="finishOnboarding()" data-i18n="ob_explore">Explore Venezuela</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN SITE -->
+<div id="main-site" style="display:none;">
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <canvas id="particles-canvas"></canvas>
+  <svg class="mountain-svg" viewBox="0 0 1440 400" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <g class="mountain-layer">
+      <path d="M0,400 L0,280 L120,180 L240,240 L360,140 L480,220 L600,100 L720,180 L840,80 L960,160 L1080,60 L1200,140 L1320,100 L1440,160 L1440,400 Z" fill="rgba(44,74,46,0.35)"/>
+    </g>
+    <g class="mountain-layer">
+      <path d="M0,400 L0,310 L180,240 L300,280 L420,200 L540,260 L660,170 L780,230 L900,150 L1020,210 L1140,130 L1260,190 L1440,170 L1440,400 Z" fill="rgba(44,74,46,0.55)"/>
+    </g>
+    <g class="mountain-layer">
+      <path d="M0,400 L0,340 L200,280 L350,310 L500,260 L650,295 L800,240 L950,275 L1100,220 L1250,260 L1440,230 L1440,400 Z" fill="rgba(26,18,8,0.85)"/>
+    </g>
+  </svg>
+  <div class="hero-content">
+    <p class="hero-eyebrow" data-i18n="hero_eyebrow">South America's hidden jewel</p>
+    <h1 class="hero-title">
+      <span data-i18n="hero_title1">Tierra de</span>
+      <span>Gracia</span>
+    </h1>
+    <p class="hero-desc" data-i18n="hero_desc">From the world's highest waterfall to Caribbean paradises — Venezuela rewards the bold traveller with wonders unlike anywhere on earth.</p>
+    <div class="hero-ctas">
+      <button class="btn-gold" onclick="document.getElementById('attractions').scrollIntoView({behavior:'smooth'})" data-i18n="hero_cta">Discover Now</button>
+      <a href="#city-guide" class="hero-link" data-i18n="hero_link">Explore Cities</a>
+    </div>
+  </div>
+  <div class="scroll-indicator">
+    <span data-i18n="scroll_down">Scroll</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker" id="ticker-inner"></div>
+</div>
+
+<!-- ATTRACTIONS -->
+<div class="divider flip" style="background:var(--dark2);"></div>
+<section id="attractions">
+  <div class="section-inner">
+    <p class="section-label reveal" data-i18n="attr_label">Top Attractions</p>
+    <h2 class="section-title reveal reveal-delay-1" data-i18n="attr_title">Wonders of Venezuela</h2>
+    <p class="section-sub reveal reveal-delay-2" data-i18n="attr_sub">From tepui plateaus to turquoise lagoons — Venezuela's natural and cultural treasures await.</p>
+    <div class="attractions-grid" id="attractions-grid"></div>
+  </div>
+</section>
+
+<!-- MAP -->
+<div class="divider" style="background:var(--dark3);"></div>
+<section id="map-section">
+  <div class="section-inner">
+    <p class="section-label reveal" data-i18n="map_label">Interactive Map</p>
+    <h2 class="section-title reveal reveal-delay-1" data-i18n="map_title">Explore the Territory</h2>
+    <div class="map-filters" id="map-filters"></div>
+    <div class="map-container reveal">
+      <div id="map"></div>
+    </div>
+  </div>
+</section>
+
+<!-- CITY GUIDE -->
+<div class="divider flip" style="background:var(--dark2);"></div>
+<section id="city-guide">
+  <div class="section-inner">
+    <p class="section-label reveal" data-i18n="city_label">City Guide</p>
+    <h2 class="section-title reveal reveal-delay-1" data-i18n="city_title">Know Your Cities</h2>
+    <div class="city-tabs" id="city-tabs"></div>
+    <div id="city-panels"></div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<div class="divider" style="background:var(--dark);"></div>
+<section id="fun-facts">
+  <div class="section-inner">
+    <p class="section-label reveal" data-i18n="facts_label">Did You Know?</p>
+    <h2 class="section-title reveal reveal-delay-1" data-i18n="facts_title">Venezuela in Numbers</h2>
+    <div class="facts-grid" id="facts-grid"></div>
+  </div>
+</section>
+
+<!-- TRAVEL TIPS -->
+<div class="divider flip" style="background:var(--dark3);"></div>
+<section id="travel-tips">
+  <div class="section-inner">
+    <p class="section-label reveal" data-i18n="tips_label">Before You Go</p>
+    <h2 class="section-title reveal reveal-delay-1" data-i18n="tips_title">Travel Tips</h2>
+    <div class="tips-grid" id="tips-grid"></div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="flag-strip"></div>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">Tierra de Gracia</div>
+      <p class="footer-tagline" data-i18n="footer_tagline">Luxury travel experiences in the land of grace. Venezuela's finest destinations, curated for the discerning traveller.</p>
+    </div>
+    <div>
+      <p class="footer-col-title" data-i18n="footer_explore">Explore</p>
+      <ul class="footer-links">
+        <li><a href="#attractions" data-i18n="nav_attractions">Attractions</a></li>
+        <li><a href="#map-section" data-i18n="nav_map">Map</a></li>
+        <li><a href="#city-guide" data-i18n="nav_cities">Cities</a></li>
+        <li><a href="#travel-tips" data-i18n="nav_tips">Travel Tips</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="footer-col-title" data-i18n="footer_newsletter">Newsletter</p>
+      <p class="footer-tagline" style="margin-bottom:1rem;" data-i18n="footer_newsletter_sub">Receive curated Venezuela travel insights.</p>
+      <div class="newsletter-form">
+        <input class="newsletter-input" type="email" id="newsletter-input" data-i18n-placeholder="newsletter_placeholder">
+        <button class="newsletter-btn" data-i18n="newsletter_btn">→</button>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span class="footer-copy" data-i18n="footer_copy">© 2025 Tierra de Gracia. All rights reserved.</span>
+    <div class="social-links">
+      <a href="#">✦</a>
+      <a href="#">◈</a>
+      <a href="#">◉</a>
+    </div>
+  </div>
+</footer>
+
+</div><!-- /main-site -->
+
+<script>
+// ─── TRANSLATIONS ───────────────────────────────────────────────────────────
+const translations = {
+  en: {
+    nav_attractions: "Attractions",
+    nav_map: "Map",
+    nav_cities: "Cities",
+    nav_tips: "Travel Tips",
+    ob_welcome_label: "Welcome to Venezuela",
+    ob_welcome_title1: "Land of",
+    ob_welcome_title2: "Grace",
+    ob_welcome_desc: "Venezuela — a land of soaring tabletop mountains, crystalline Caribbean shores, and a culture as vibrant as its sunsets. Your extraordinary journey begins here.",
+    ob_begin: "Begin Your Journey",
+    ob_city_label: "Your Destination",
+    ob_city_title: "Where are you headed?",
+    ob_interest_label: "Your Travel Style",
+    ob_interest_title: "What excites you?",
+    ob_back: "Back",
+    ob_next: "Next",
+    ob_explore: "Explore Venezuela",
+    hero_eyebrow: "South America's hidden jewel",
+    hero_title1: "Tierra de",
+    hero_desc: "From the world's highest waterfall to Caribbean paradises — Venezuela rewards the bold traveller with wonders unlike anywhere on earth.",
+    hero_cta: "Discover Now",
+    hero_link: "Explore Cities",
+    scroll_down: "Scroll",
+    attr_label: "Top Attractions",
+    attr_title: "Wonders of Venezuela",
+    attr_sub: "From tepui plateaus to turquoise lagoons — Venezuela's natural and cultural treasures await.",
+    explore_btn: "Explore",
+    map_label: "Interactive Map",
+    map_title: "Explore the Territory",
+    map_all: "All",
+    map_nature: "Nature",
+    map_beaches: "Beaches",
+    map_cities: "Cities",
+    map_food: "Food",
+    city_label: "City Guide",
+    city_title: "Know Your Cities",
+    city_see: "What to See",
+    city_eat: "What to Eat",
+    city_when: "Best Time",
+    city_transport: "Transport",
+    facts_label: "Did You Know?",
+    facts_title: "Venezuela in Numbers",
+    tips_label: "Before You Go",
+    tips_title: "Travel Tips",
+    footer_tagline: "Luxury travel experiences in the land of grace. Venezuela's finest destinations, curated for the discerning traveller.",
+    footer_explore: "Explore",
+    footer_newsletter: "Newsletter",
+    footer_newsletter_sub: "Receive curated Venezuela travel insights.",
+    newsletter_placeholder: "Your email address",
+    newsletter_btn: "→",
+    footer_copy: "© 2025 Tierra de Gracia. All rights reserved.",
+    cities: {
+      caracas: { name: "Caracas", tag: "Capital City", see: "Bolivar Square, Teresa Carreño Theatre, El Hatillo", eat: "Pabellón criollo, cachapas, arepas con todo", when: "Jan–Mar & Jul–Aug (dry season)", transport: "Metro, por puesto, private taxi" },
+      maracaibo: { name: "Maracaibo", tag: "Oil & Culture", see: "Zulia's Lantern Festival, Rafael Urdaneta Bridge, Cojoro", eat: "Patacón zuliano, mojito en coco, chicharrón", when: "Dec–Apr (cooler & dry)", transport: "Local buses, moto-taxi" },
+      merida: { name: "Mérida", tag: "Mountain City", see: "World's highest cable car, Los Nevados, Mucubají Lagoon", eat: "Pisca andina, trucha andina, dulce de leche", when: "Dec–Mar (clear skies)", transport: "Ruta buses, cable car, jeep" },
+      losroques: { name: "Los Roques", tag: "Island Paradise", see: "Gran Roque village, Francisquí, Madrisquí cays", eat: "Grilled lobster, fresh ceviche, coconut rice", when: "Year-round; Dec–Apr for calmest seas", transport: "Charter flights, posadas boats" },
+      canaima: { name: "Canaima", tag: "Tepui Country", see: "Laguna de Canaima, Ucaima Falls, Salto Hacha", eat: "Jungle cassava bread, roasted fish, tropical fruit", when: "Jun–Oct (waterfall peak flow)", transport: "Charter flight only" },
+      angelfalls: { name: "Angel Falls", tag: "World's Highest", see: "Auyán-tepui summit, Canaima National Park, Churún River", eat: "Indigenous-guided meals, river fish, cachiri", when: "Jun–Oct (full falls)", transport: "Boat from Canaima + jungle trek" },
+      margarita: { name: "Margarita Island", tag: "Caribbean Gem", see: "Playa El Agua, Juangriego, La Asunción fortress", eat: "Empanadas de cazón, grilled pargo, coconut candy", when: "Dec–Apr (peak season)", transport: "Ferry from mainland, local buses" }
+    },
+    interests: {
+      nature: "Nature & Jungle",
+      beaches: "Beaches",
+      food: "Food & Culture",
+      history: "History",
+      adventure: "Adventure",
+      nightlife: "Nightlife"
+    },
+    attractions: [
+      { name: "Angel Falls", loc: "Bolivar State", desc: "The world's highest uninterrupted waterfall at 979 m, plunging from the Auyán-tepui mesa into the Gran Sabana.", icon: "🌊" },
+      { name: "Los Roques", loc: "Federal Dependencies", desc: "A pristine coral archipelago of white-sand cays and turquoise lagoons, a Caribbean jewel accessible only by air.", icon: "🏝️" },
+      { name: "Canaima National Park", loc: "Gran Sabana", desc: "A UNESCO World Heritage site covering 3 million hectares of tepuis, waterfalls, and ancient rainforest.", icon: "🏔️" },
+      { name: "Mérida Cable Car", loc: "Andes, Mérida", desc: "Teleferico de Mérida — the world's highest and longest cable car, scaling the Andes to 4,765 m altitude.", icon: "🚡" },
+      { name: "Morrocoy National Park", loc: "Falcón State", desc: "A dazzling coastal park of mangroves, coral reefs, and crystalline cays perfect for snorkelling and sailing.", icon: "🐠" }
+    ],
+    facts: [
+      { icon: "🌊", text: "Home to Angel Falls — the world's highest waterfall at 979 metres." },
+      { icon: "👑", text: "Venezuela holds 17 Miss Universe titles — more than any other country." },
+      { icon: "🍫", text: "Birthplace of cacao — Venezuela produces some of the world's finest chocolate." },
+      { icon: "🦜", text: "One of the most biodiverse countries on Earth with over 1,400 bird species." },
+      { icon: "🏞️", text: "43 national parks cover more than 30% of the national territory." },
+      { icon: "⭐", text: "Venezuela has 11 UNESCO World Heritage Sites and biosphere reserves." }
+    ],
+    tips: [
+      { icon: "🛂", title: "Visa & Entry", text: "Most nationalities receive a free tourist visa on arrival valid for 90 days. Passport must be valid 6 months beyond stay." },
+      { icon: "💵", title: "Currency Tips", text: "The bolívar soberano is the official currency. USD is widely accepted in tourist areas. Use official exchange rates." },
+      { icon: "🛡️", title: "Safety Zones", text: "Stick to Isla Margarita, Los Roques, Mérida, and established tourist circuits. Register with your embassy upon arrival." },
+      { icon: "☀️", title: "Best Season", text: "Dry season runs December to April — ideal for beaches and wildlife. June–October sees lush greenery and full waterfalls." },
+      { icon: "🎒", title: "Packing List", text: "Light tropical clothes, insect repellent, sun protection SPF 50+, waterproof bag, and a universal adapter." },
+      { icon: "🗣️", title: "Language", text: "Spanish is the official language. Learning basic phrases is greatly appreciated and will open many doors." }
+    ],
+    ticker_facts: ["Population: 28 million", "Currency: Bolívar Soberano", "Official Language: Spanish", "Capital: Caracas", "UNESCO Sites: 3", "National Parks: 43", "Area: 916,445 km²", "Coastline: 2,800 km", "Highest Peak: Pico Bolívar 4,978 m"]
+  },
+  ru: {
+    nav_attractions: "Достопримечательности",
+    nav_map: "Карта",
+    nav_cities: "Города",
+    nav_tips: "Советы",
+    ob_welcome_label: "Добро пожаловать в Венесуэлу",
+    ob_welcome_title1: "Земля",
+    ob_welcome_title2: "Благодати",
+    ob_welcome_desc: "Венесуэла — страна величественных столовых гор, кристальных карибских берегов и культуры, яркой, как её закаты. Ваше незабываемое путешествие начинается здесь.",
+    ob_begin: "Начать путешествие",
+    ob_city_label: "Ваш пункт назначения",
+    ob_city_title: "Куда вы направляетесь?",
+    ob_interest_label: "Ваш стиль путешествия",
+    ob_interest_title: "Что вас привлекает?",
+    ob_back: "Назад",
+    ob_next: "Далее",
+    ob_explore: "Исследовать Венесуэлу",
+    hero_eyebrow: "Скрытая жемчужина Южной Америки",
+    hero_title1: "Tierra de",
+    hero_desc: "От самого высокого водопада в мире до карибских райских островов — Венесуэла дарит смелому путешественнику чудеса, каких нет нигде на земле.",
+    hero_cta: "Открыть сейчас",
+    hero_link: "Изучить города",
+    scroll_down: "Прокрутить",
+    attr_label: "Главные достопримечательности",
+    attr_title: "Чудеса Венесуэлы",
+    attr_sub: "От плато тепуй до бирюзовых лагун — природные и культурные сокровища Венесуэлы ждут вас.",
+    explore_btn: "Подробнее",
+    map_label: "Интерактивная карта",
+    map_title: "Исследуйте территорию",
+    map_all: "Все",
+    map_nature: "Природа",
+    map_beaches: "Пляжи",
+    map_cities: "Города",
+    map_food: "Еда",
+    city_label: "Путеводитель по городам",
+    city_title: "Познакомьтесь с городами",
+    city_see: "Что посмотреть",
+    city_eat: "Что попробовать",
+    city_when: "Лучшее время",
+    city_transport: "Транспорт",
+    facts_label: "Вы знали?",
+    facts_title: "Венесуэла в цифрах",
+    tips_label: "Перед отъездом",
+    tips_title: "Советы путешественнику",
+    footer_tagline: "Роскошные путешествия в землю благодати. Лучшие направления Венесуэлы для взыскательного путешественника.",
+    footer_explore: "Изучить",
+    footer_newsletter: "Рассылка",
+    footer_newsletter_sub: "Получайте избранные советы по путешествиям в Венесуэлу.",
+    newsletter_placeholder: "Ваш email адрес",
+    newsletter_btn: "→",
+    footer_copy: "© 2025 Tierra de Gracia. Все права защищены.",
+    cities: {
+      caracas: { name: "Каракас", tag: "Столица", see: "Площадь Боливара, Театр Тересы Каррено, Эль-Атильо", eat: "Пабельон криольо, качапас, арепас", when: "Янв–Мар и Июл–Авг (сухой сезон)", transport: "Метро, пор-пуэсто, такси" },
+      maracaibo: { name: "Маракайбо", tag: "Нефть и культура", see: "Фестиваль фонарей Зулии, мост Рафаэля Урданеты", eat: "Патакон зулиано, мохито в кокосе, чичаррон", when: "Дек–Апр (прохладно и сухо)", transport: "Автобусы, мото-такси" },
+      merida: { name: "Мерида", tag: "Горный город", see: "Самая высокая канатная дорога в мире, лагуна Мукубаджи", eat: "Писка андина, андская форель, дульсе де лече", when: "Дек–Мар (ясное небо)", transport: "Автобусы, канатная дорога, джип" },
+      losroques: { name: "Лос-Рокес", tag: "Островной рай", see: "Деревня Гран-Рок, острова Франсискуй, Мадрискуй", eat: "Лобстер на гриле, свежий севиче, кокосовый рис", when: "Круглый год; Дек–Апр — самое спокойное море", transport: "Чартерные рейсы, лодки" },
+      canaima: { name: "Канаима", tag: "Страна тепуй", see: "Лагуна Канаима, водопад Укаима, Сальто-Ача", eat: "Маниоковый хлеб, жареная рыба, тропические фрукты", when: "Июн–Окт (пик водопадов)", transport: "Только чартерные рейсы" },
+      angelfalls: { name: "Анхель", tag: "Самый высокий водопад", see: "Плато Ауян-тепуй, Нацпарк Канаима, река Чурун", eat: "Блюда под руководством аборигенов, рыба из реки", when: "Июн–Окт (полный напор)", transport: "Лодка из Канаимы + пеший маршрут" },
+      margarita: { name: "Маргарита", tag: "Карибская жемчужина", see: "Пляж Эль-Агуа, Хуангрего, крепость Ла-Асунсьон", eat: "Эмпанадас с рыбой, паргон на гриле, кокосовые конфеты", when: "Дек–Апр (пик сезона)", transport: "Паром с материка, местные автобусы" }
+    },
+    interests: {
+      nature: "Природа и джунгли",
+      beaches: "Пляжи",
+      food: "Еда и культура",
+      history: "История",
+      adventure: "Приключения",
+      nightlife: "Ночная жизнь"
+    },
+    attractions: [
+      { name: "Водопад Анхель", loc: "Штат Боливар", desc: "Самый высокий непрерывный водопад в мире высотой 979 м, падающий с плато Ауян-тепуй в Гран-Сабану.", icon: "🌊" },
+      { name: "Лос-Рокес", loc: "Федеральные владения", desc: "Нетронутый коралловый архипелаг с белоснежными пляжами и бирюзовыми лагунами, доступный только по воздуху.", icon: "🏝️" },
+      { name: "Нацпарк Канаима", loc: "Гран-Сабана", desc: "Объект Всемирного наследия ЮНЕСКО площадью 3 млн га с тепуями, водопадами и древними тропическими лесами.", icon: "🏔️" },
+      { name: "Канатная дорога Мериды", loc: "Анды, Мерида", desc: "Телеферико де Мерида — самая высокая и длинная в мире канатная дорога, поднимающая на высоту 4765 м.", icon: "🚡" },
+      { name: "Нацпарк Морокой", loc: "Штат Фалькон", desc: "Потрясающий прибрежный парк с мангровыми зарослями, коралловыми рифами и кристальными бухтами.", icon: "🐠" }
+    ],
+    facts: [
+      { icon: "🌊", text: "Родина водопада Анхель — самого высокого водопада в мире высотой 979 метров." },
+      { icon: "👑", text: "Венесуэла завоевала 17 титулов Мисс Вселенной — больше, чем любая другая страна." },
+      { icon: "🍫", text: "Родина какао — Венесуэла производит одни из лучших сортов шоколада в мире." },
+      { icon: "🦜", text: "Одна из самых биоразнообразных стран с более чем 1400 видами птиц." },
+      { icon: "🏞️", text: "43 национальных парка занимают более 30% национальной территории." },
+      { icon: "⭐", text: "Венесуэла имеет 11 объектов ЮНЕСКО и биосферных заповедников." }
+    ],
+    tips: [
+      { icon: "🛂", title: "Виза и въезд", text: "Большинство национальностей получают бесплатную туристическую визу по прилёту на 90 дней. Паспорт должен быть действителен ещё 6 месяцев." },
+      { icon: "💵", title: "Советы по валюте", text: "Официальная валюта — боливар соберано. В туристических районах широко принимается USD. Используйте официальные курсы обмена." },
+      { icon: "🛡️", title: "Безопасные зоны", text: "Держитесь острова Маргарита, Лос-Рокес, Мериды и установленных туристических маршрутов. Зарегистрируйтесь в посольстве по прибытии." },
+      { icon: "☀️", title: "Лучший сезон", text: "Сухой сезон — с декабря по апрель, идеально для пляжей. Июнь–октябрь: пышная зелень и полноводные водопады." },
+      { icon: "🎒", title: "Список вещей", text: "Лёгкая тропическая одежда, репеллент от насекомых, SPF 50+, водонепроницаемая сумка и универсальный адаптер." },
+      { icon: "🗣️", title: "Язык", text: "Официальный язык — испанский. Базовые фразы будут высоко оценены и откроют многие двери." }
+    ],
+    ticker_facts: ["Население: 28 миллионов", "Валюта: Боливар Соберано", "Официальный язык: Испанский", "Столица: Каракас", "Объекты ЮНЕСКО: 3", "Нацпарки: 43", "Площадь: 916 445 км²", "Береговая линия: 2 800 км", "Высшая точка: Пико Боливар 4 978 м"]
+  }
+};
+
+let currentLang = 'en';
+let selectedCities = [];
+let selectedInterests = [];
+
+// ─── LANGUAGE ────────────────────────────────────────────────────────────────
+function t(key) {
+  const keys = key.split('.');
+  let val = translations[currentLang];
+  for (const k of keys) val = val?.[k];
+  return val || key;
+}
+
+function setLang(lang) {
+  if (lang === currentLang) return;
+  document.body.classList.add('lang-switching');
+  setTimeout(() => {
+    currentLang = lang;
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+    applyTranslations();
+    rebuildDynamic();
+    document.body.classList.remove('lang-switching');
+  }, 250);
+}
+
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    const val = t(key);
+    if (val && val !== key) el.textContent = val;
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.dataset.i18nPlaceholder;
+    const val = t(key);
+    if (val) el.placeholder = val;
+  });
+  document.getElementById('newsletter-input').placeholder = t('newsletter_placeholder');
+}
+
+// ─── ONBOARDING ──────────────────────────────────────────────────────────────
+const cities = [
+  { id: 'caracas', icon: '🏙️', nameKey: 'cities.caracas.name', tagKey: 'cities.caracas.tag' },
+  { id: 'maracaibo', icon: '🌉', nameKey: 'cities.maracaibo.name', tagKey: 'cities.maracaibo.tag' },
+  { id: 'merida', icon: '🏔️', nameKey: 'cities.merida.name', tagKey: 'cities.merida.tag' },
+  { id: 'losroques', icon: '🏝️', nameKey: 'cities.losroques.name', tagKey: 'cities.losroques.tag' },
+  { id: 'canaima', icon: '🌿', nameKey: 'cities.canaima.name', tagKey: 'cities.canaima.tag' },
+  { id: 'angelfalls', icon: '🌊', nameKey: 'cities.angelfalls.name', tagKey: 'cities.angelfalls.tag' },
+  { id: 'margarita', icon: '🐚', nameKey: 'cities.margarita.name', tagKey: 'cities.margarita.tag' }
+];
+
+const interests = [
+  { id: 'nature', icon: '🌿', nameKey: 'interests.nature' },
+  { id: 'beaches', icon: '🏖️', nameKey: 'interests.beaches' },
+  { id: 'food', icon: '🍽️', nameKey: 'interests.food' },
+  { id: 'history', icon: '🏛️', nameKey: 'interests.history' },
+  { id: 'adventure', icon: '⛰️', nameKey: 'interests.adventure' },
+  { id: 'nightlife', icon: '🌃', nameKey: 'interests.nightlife' }
+];
+
+function buildCityGrid() {
+  const grid = document.getElementById('city-grid');
+  grid.innerHTML = cities.map(c => `
+    <div class="sel-card ${selectedCities.includes(c.id) ? 'selected' : ''}"
+         onclick="toggleCity('${c.id}', this)">
+      <div class="icon">${c.icon}</div>
+      <div class="name">${t(c.nameKey)}</div>
+      <div class="tag">${t(c.tagKey)}</div>
+    </div>
+  `).join('');
+}
+
+function buildInterestGrid() {
+  const grid = document.getElementById('interest-grid');
+  grid.innerHTML = interests.map(i => `
+    <div class="sel-card ${selectedInterests.includes(i.id) ? 'selected' : ''}"
+         onclick="toggleInterest('${i.id}', this)">
+      <div class="icon">${i.icon}</div>
+      <div class="name">${t(i.nameKey)}</div>
+    </div>
+  `).join('');
+}
+
+function toggleCity(id, el) {
+  if (selectedCities.includes(id)) {
+    selectedCities = selectedCities.filter(x => x !== id);
+    el.classList.remove('selected');
+  } else {
+    selectedCities.push(id);
+    el.classList.add('selected');
+  }
+}
+
+function toggleInterest(id, el) {
+  if (selectedInterests.includes(id)) {
+    selectedInterests = selectedInterests.filter(x => x !== id);
+    el.classList.remove('selected');
+  } else {
+    selectedInterests.push(id);
+    el.classList.add('selected');
+  }
+}
+
+function goToStep(n) {
+  document.querySelectorAll('.ob-step').forEach(s => s.classList.remove('active'));
+  document.getElementById(`ob-step-${n}`).classList.add('active');
+  if (n === 2) buildCityGrid();
+  if (n === 3) buildInterestGrid();
+}
+
+function finishOnboarding() {
+  const ob = document.getElementById('onboarding');
+  ob.classList.add('hidden');
+  setTimeout(() => { ob.style.display = 'none'; }, 800);
+  const main = document.getElementById('main-site');
+  main.style.display = 'block';
+  setTimeout(() => buildMain(), 100);
+}
+
+// ─── MAIN SITE ────────────────────────────────────────────────────────────────
+function buildMain() {
+  buildTicker();
+  buildAttractions();
+  buildMap();
+  buildCityGuide();
+  buildFacts();
+  buildTips();
+  initParticles();
+  initScrollReveal();
+  applyTranslations();
+}
+
+function rebuildDynamic() {
+  buildTicker();
+  buildAttractions();
+  buildFacts();
+  buildTips();
+  buildCityGuide();
+  buildMapFilters();
+  buildCityGrid();
+  buildInterestGrid();
+}
+
+// ─── TICKER ───────────────────────────────────────────────────────────────────
+function buildTicker() {
+  const facts = t('ticker_facts');
+  const items = [...facts, ...facts].map(f => `<span class="ticker-item">${f} <span class="ticker-sep">◆</span></span>`).join('');
+  document.getElementById('ticker-inner').innerHTML = items;
+}
+
+// ─── ATTRACTIONS ──────────────────────────────────────────────────────────────
+const attrBgs = [
+  'linear-gradient(135deg, #1a3a2a 0%, #2C4A2E 100%)',
+  'linear-gradient(135deg, #1a2a3a 0%, #4A7FA5 100%)',
+  'linear-gradient(135deg, #2a1a10 0%, #5a3020 100%)',
+  'linear-gradient(135deg, #2a2a1a 0%, #4a4a20 100%)',
+  'linear-gradient(135deg, #1a2a3a 0%, #2a4a5a 100%)'
+];
+
+function buildAttractions() {
+  const attrs = t('attractions');
+  const grid = document.getElementById('attractions-grid');
+  grid.innerHTML = attrs.map((a, i) => `
+    <div class="attraction-card reveal reveal-delay-${(i%4)+1}">
+      <div class="attraction-img" style="background:${attrBgs[i]}">
+        <span style="position:relative;z-index:1;font-size:5rem;">${a.icon}</span>
+      </div>
+      <div class="attr-body">
+        <div class="attr-loc">${a.loc}</div>
+        <div class="attr-name">${a.name}</div>
+        <div class="attr-desc">${a.desc}</div>
+        <button class="btn-sm">${t('explore_btn')}</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── MAP ──────────────────────────────────────────────────────────────────────
+const mapMarkers = [
+  { lat: 5.9667, lng: -62.5333, name: "Angel Falls", cat: "nature", icon: "🌊" },
+  { lat: 11.7500, lng: -66.9000, name: "Los Roques", cat: "beaches", icon: "🏝️" },
+  { lat: 6.1667, lng: -62.8333, name: "Canaima", cat: "nature", icon: "🌿" },
+  { lat: 10.4806, lng: -66.9036, name: "Caracas", cat: "cities", icon: "🏙️" },
+  { lat: 10.6544, lng: -71.6560, name: "Maracaibo", cat: "cities", icon: "🌉" },
+  { lat: 8.5897, lng: -71.1440, name: "Mérida", cat: "cities", icon: "🏔️" },
+  { lat: 10.9333, lng: -68.3833, name: "Morrocoy", cat: "beaches", icon: "🐠" },
+  { lat: 10.9667, lng: -63.8500, name: "Margarita Island", cat: "beaches", icon: "🐚" },
+  { lat: 10.4167, lng: -66.8500, name: "El Hatillo", cat: "food", icon: "🍽️" }
+];
+
+let leafletMap = null;
+let leafletMarkerObjects = [];
+let activeFilter = 'all';
+
+function buildMap() {
+  if (leafletMap) return;
+  leafletMap = L.map('map', { zoomControl: true }).setView([8.0, -66.0], 6);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap © CARTO', maxZoom: 18
+  }).addTo(leafletMap);
+
+  mapMarkers.forEach(m => {
+    const icon = L.divIcon({
+      html: `<div style="width:36px;height:36px;background:var(--gold);border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:2px solid var(--dark);">
+               <span style="transform:rotate(45deg);font-size:14px;">${m.icon}</span></div>`,
+      className: '',
+      iconSize: [36, 36],
+      iconAnchor: [18, 36]
+    });
+    const marker = L.marker([m.lat, m.lng], { icon })
+      .addTo(leafletMap)
+      .bindPopup(`<strong style="color:var(--gold)">${m.name}</strong><br><span style="font-size:0.7rem;opacity:0.7;text-transform:uppercase;letter-spacing:0.1em">${m.cat}</span>`);
+    marker._cat = m.cat;
+    leafletMarkerObjects.push(marker);
+  });
+
+  buildMapFilters();
+}
+
+function buildMapFilters() {
+  const cats = ['all', 'nature', 'beaches', 'cities', 'food'];
+  const keys = { all: 'map_all', nature: 'map_nature', beaches: 'map_beaches', cities: 'map_cities', food: 'map_food' };
+  const container = document.getElementById('map-filters');
+  container.innerHTML = cats.map(c => `
+    <button class="map-filter-btn ${activeFilter === c ? 'active' : ''}" onclick="filterMap('${c}')">${t(keys[c])}</button>
+  `).join('');
+}
+
+function filterMap(cat) {
+  activeFilter = cat;
+  buildMapFilters();
+  leafletMarkerObjects.forEach(m => {
+    if (cat === 'all' || m._cat === cat) {
+      if (!leafletMap.hasLayer(m)) m.addTo(leafletMap);
+    } else {
+      leafletMap.removeLayer(m);
+    }
+  });
+}
+
+// ─── CITY GUIDE ───────────────────────────────────────────────────────────────
+const cityOrder = ['caracas', 'maracaibo', 'merida', 'losroques', 'canaima', 'angelfalls', 'margarita'];
+
+function buildCityGuide() {
+  const tabsEl = document.getElementById('city-tabs');
+  const panelsEl = document.getElementById('city-panels');
+
+  tabsEl.innerHTML = cityOrder.map((id, i) => `
+    <button class="city-tab ${i===0?'active':''}" onclick="switchCity('${id}', this)">${t(`cities.${id}.name`)}</button>
+  `).join('');
+
+  panelsEl.innerHTML = cityOrder.map((id, i) => {
+    const c = translations[currentLang].cities[id];
+    return `<div class="city-panel ${i===0?'active':''}" id="panel-${id}">
+      <div class="city-info-block">
+        <div class="city-info-label">${t('city_see')}</div>
+        <div class="city-info-text">${c.see}</div>
+      </div>
+      <div class="city-info-block">
+        <div class="city-info-label">${t('city_eat')}</div>
+        <div class="city-info-text">${c.eat}</div>
+      </div>
+      <div class="city-info-block">
+        <div class="city-info-label">${t('city_when')}</div>
+        <div class="city-info-text">${c.when}</div>
+      </div>
+      <div class="city-info-block">
+        <div class="city-info-label">${t('city_transport')}</div>
+        <div class="city-info-text">${c.transport}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function switchCity(id, btn) {
+  document.querySelectorAll('.city-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.city-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`panel-${id}`).classList.add('active');
+}
+
+// ─── FACTS ────────────────────────────────────────────────────────────────────
+function buildFacts() {
+  const facts = t('facts');
+  document.getElementById('facts-grid').innerHTML = facts.map((f, i) => `
+    <div class="fact-card reveal reveal-delay-${(i%4)+1}">
+      <div class="fact-icon">${f.icon}</div>
+      <div class="fact-text">${f.text}</div>
+    </div>
+  `).join('');
+}
+
+// ─── TIPS ─────────────────────────────────────────────────────────────────────
+function buildTips() {
+  const tips = t('tips');
+  document.getElementById('tips-grid').innerHTML = tips.map((tip, i) => `
+    <div class="tip-card reveal reveal-delay-${(i%4)+1}">
+      <div class="tip-icon">${tip.icon}</div>
+      <div class="tip-title">${tip.title}</div>
+      <div class="tip-text">${tip.text}</div>
+    </div>
+  `).join('');
+}
+
+// ─── PARTICLES ────────────────────────────────────────────────────────────────
+function initParticles() {
+  const canvas = document.getElementById('particles-canvas');
+  const ctx = canvas.getContext('2d');
+  let W = canvas.width = window.innerWidth;
+  let H = canvas.height = window.innerHeight;
+  window.addEventListener('resize', () => { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; });
+
+  const particles = Array.from({ length: 60 }, () => ({
+    x: Math.random() * W, y: Math.random() * H,
+    r: Math.random() * 2 + 0.5,
+    vx: (Math.random() - 0.5) * 0.3,
+    vy: -Math.random() * 0.5 - 0.1,
+    alpha: Math.random() * 0.6 + 0.1
+  }));
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(201,147,58,${p.alpha})`;
+      ctx.fill();
+      p.x += p.vx; p.y += p.vy;
+      if (p.y < -5) { p.y = H + 5; p.x = Math.random() * W; }
+      if (p.x < 0 || p.x > W) p.vx *= -1;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ─── SCROLL REVEAL ────────────────────────────────────────────────────────────
+function initScrollReveal() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+}
+
+// ─── CURSOR ───────────────────────────────────────────────────────────────────
+const dot = document.getElementById('cursor-dot');
+const ring = document.getElementById('cursor-ring');
+let mx = 0, my = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; dot.style.left = mx + 'px'; dot.style.top = my + 'px'; });
+(function animRing() {
+  rx += (mx - rx) * 0.15; ry += (my - ry) * 0.15;
+  ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+  requestAnimationFrame(animRing);
+})();
+document.querySelectorAll('a, button, .sel-card, .attraction-card, .fact-card, .tip-card').forEach(el => {
+  el.addEventListener('mouseenter', () => { ring.style.width = '50px'; ring.style.height = '50px'; ring.style.opacity = '1'; });
+  el.addEventListener('mouseleave', () => { ring.style.width = '30px'; ring.style.height = '30px'; ring.style.opacity = '0.7'; });
+});
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+buildCityGrid();
+applyTranslations();
+</script>
+</body>
+</html>
